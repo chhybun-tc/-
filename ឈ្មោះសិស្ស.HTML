@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>កម្មវិធីសត្វប្រណាំងគ្នា - រកអ្នកឆ្លើយសំណួរ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kantumruy Pro', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: #1a73e8; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+
+        .setup-area {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        textarea {
+            width: 90%;
+            height: 80px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Kantumruy Pro';
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: 'Kantumruy Pro';
+        }
+
+        button:hover { background-color: #218838; transform: scale(1.05); }
+
+        /* តារាងរត់ */
+        #race-track {
+            width: 95%;
+            max-width: 1000px;
+            background-color: #55a630;
+            border: 5px solid #2d6a4f;
+            border-radius: 10px;
+            padding: 20px 0;
+            position: relative;
+            display: none; /* លាក់សិនពេលមិនទាន់លេង */
+        }
+
+        .lane {
+            height: 60px;
+            border-bottom: 2px dashed rgba(255,255,255,0.3);
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .animal {
+            position: absolute;
+            left: 0;
+            font-size: 40px;
+            transition: left 0.2s linear;
+            z-index: 2;
+        }
+
+        .student-name {
+            position: absolute;
+            left: 0;
+            top: -15px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.8);
+            padding: 2px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .finish-line {
+            position: absolute;
+            right: 50px;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            background: repeating-linear-gradient(
+                0deg,
+                #fff,
+                #fff 10px,
+                #000 10px,
+                #000 20px
+            );
+        }
+
+        /* បង្ហាញលទ្ធផល */
+        #result-screen {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            z-index: 100;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .loser-highlight {
+            color: #d9534f;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 10px;
+            border: 2px dashed #d9534f;
+        }
+
+        .rank-list {
+            text-align: left;
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>សត្វប្រណាំងគ្នា រកអ្នកឆ្លើយសំណួរ 🏃‍♂️💨</h1>
+
+    <div class="setup-area" id="setup">
+        <p>បញ្ចូលឈ្មោះសិស្ស (ប្រើដកឃ្លាដើម្បីបំបែកឈ្មោះ)៖</p>
+        <textarea id="studentNames" placeholder="ឧទាហរណ៍៖ សុខ ជា តុលា ស្រីមុំ..."></textarea>
+        <br>
+        <button onclick="startRace()">ចាប់ផ្តើមការប្រកួត!</button>
+    </div>
+
+    <div id="race-track">
+        <div class="finish-line"></div>
+        <!-- គន្លងរត់នឹងបង្ហាញនៅទីនេះ -->
+    </div>
+
+    <div id="result-screen">
+        <h2>🏆 លទ្ធផលការប្រកួត 🏆</h2>
+        <div class="rank-list" id="rankList"></div>
+        <div class="loser-highlight" id="loserSection"></div>
+        <br>
+        <button onclick="resetGame()" style="background-color: #6c757d;">លេងម្តងទៀត</button>
+    </div>
+
+    <script>
+        const animals = ['🐇', '🐢', '🐎', '🐕', '🐈', '🐒', '🐅', '🦌', '🐄', '🐷'];
+        let finishedCount = 0;
+        let winners = [];
+        let raceInterval;
+
+        function startRace() {
+            const input = document.getElementById('studentNames').value.trim();
+            if (!input) return alert("សូមបញ្ចូលឈ្មោះសិស្សសិន!");
+
+            const names = input.split(/\s+/);
+            const track = document.getElementById('race-track');
+            const setup = document.getElementById('setup');
+
+            // រៀបចំទីលាន
+            track.innerHTML = '<div class="finish-line"></div>';
+            track.style.display = 'block';
+            setup.style.display = 'none';
+
+            finishedCount = 0;
+            winners = [];
+
+            names.forEach((name, index) => {
+                const animalEmoji = animals[index % animals.length];
+                const lane = document.createElement('div');
+                lane.className = 'lane';
+                lane.innerHTML = `
+                    <div class="animal" id="animal-${index}" style="left: 0;">
+                        <span class="student-name">${name}</span>
+                        ${animalEmoji}
+                    </div>
+                `;
+                track.appendChild(lane);
+            });
+
+            runRace(names.length);
+        }
+
+        function runRace(totalPlayers) {
+            const trackWidth = document.getElementById('race-track').offsetWidth - 100;
+            const startTime = Date.now();
+            const duration = 20000; // ២០ វិនាទី
+
+            raceInterval = setInterval(() => {
+                let allFinished = true;
+
+                for (let i = 0; i < totalPlayers; i++) {
+                    const el = document.getElementById(`animal-${i}`);
+                    let currentLeft = parseFloat(el.style.left);
+
+                    if (currentLeft < trackWidth) {
+                        allFinished = false;
+                        
+                        // បង្កើតល្បឿនចៃដន្យ (ខ្លះលឿន ខ្លះយឺត)
+                        // Math.random() បង្កើតភាពរំភើប
+                        let speed = Math.random() * 8; 
+                        
+                        // បន្ថែមល្បឿនខ្លាំងនៅពេលជិតដល់ ២០ វិនាទី ដើម្បីឱ្យចប់ស្របគ្នា
+                        const elapsed = Date.now() - startTime;
+                        if (elapsed > duration * 0.8) {
+                            speed += Math.random() * 15;
+                        }
+
+                        let newLeft = currentLeft + speed;
+                        if (newLeft >= trackWidth) {
+                            newLeft = trackWidth;
+                            if (!winners.find(w => w.id === i)) {
+                                winners.push({ id: i, name: el.innerText.trim() });
+                            }
+                        }
+                        el.style.left = newLeft + 'px';
+                    }
+                }
+
+                if (winners.length === totalPlayers) {
+                    clearInterval(raceInterval);
+                    showResults();
+                }
+            }, 100); // ធ្វើបច្ចុប្បន្នភាពរៀងរាល់ 0.1 វិនាទី
+        }
+
+        function showResults() {
+            const resultScreen = document.getElementById('result-screen');
+            const rankList = document.getElementById('rankList');
+            const loserSection = document.getElementById('loserSection');
+
+            rankList.innerHTML = winners.map((w, i) => 
+                `<div>លេខ ${i + 1}: ${w.name}</div>`
+            ).join('');
+
+            const loser = winners[winners.length - 1];
+            loserSection.innerHTML = `
+                🔔 អ្នកដែលត្រូវងើបឈរឆ្លើយសំណួរគឺ៖<br>
+                <span style="font-size: 40px;">👉 ${loser.name} 👈</span>
+            `;
+
+            resultScreen.style.display = 'block';
+        }
+
+        function resetGame() {
+            document.getElementById('result-screen').style.display = 'none';
+            document.getElementById('race-track').style.display = 'none';
+            document.getElementById('setup').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+របៀបប្រើប្រាស់៖
+បញ្ចូលឈ្មោះ៖ វាយឈ្មោះសិស្សក្នុងប្រអប់ (ឧទាហរណ៍៖ សុខ ហេង ម៉ារី តុលា)។
+ចុច Start៖ សត្វតំណាងឱ្យសិស្សម្នាក់ៗនឹងបង្ហាញខ្លួន។
+ការរត់៖ សត្វនឹងរត់ទៅមុខដោយល្បឿនខុសៗគ្នា (ខ្លះវ៉ាគេ ខ្លះយឺត) ដែលធ្វើឱ្យសិស្សចូលចិត្ត និងស្រែកហ៊ោតាមឈ្មោះខ្លួនឯង។
+លទ្ធផល៖ នៅពេលរត់ដល់ទីអស់ កម្មវិធីនឹងបង្ហាញចំណាត់ថ្នាក់ពីលេខ ១ ដល់ចុងក្រោយ។
+អ្នកចាញ់៖ ឈ្មោះអ្នកចុងក្រោយគេនឹងបង្ហាញធំៗ ដើម្បីឱ្យគាត់ដឹងខ្លួនថាត្រូវងើបឈរឆ្លើយសំណួរ។
+កម្មវិធីនេះស័ក្តិសមបំផុតសម្រាប់គ្រូបង្រៀនប្រើប្រាស់ក្នុងថ្នាក់ ដើម្បីបង្កើនបរិយាកាសរីករាយ!
+Model 2:51 PM
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+ដើម្បីបន្ថែមសម្លេងឱ្យកាន់តែរំភើប (សម្លេងភ្លេងពេលរត់ សម្លេងហ៊ោ និងសម្លេងពេលរកឃើញអ្នកចាញ់) ខ្ញុំបានកែសម្រួលកូដដោយបញ្ចូលឯកសារសម្លេងពីប្រភព Online (Royalty Free)។
+អ្នកអាចចម្លងកូដខាងក្រោមនេះទៅប្រើបានភ្លាមៗ៖
+code
+Html
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>កម្មវិធីសត្វប្រណាំងគ្នា - រកអ្នកឆ្លើយសំណួរ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kantumruy Pro', sans-serif;
+            background-color: #e9ecef;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 { color: #d90429; margin-bottom: 10px; }
+
+        textarea {
+            width: 90%;
+            height: 60px;
+            padding: 10px;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            font-family: 'Kantumruy Pro';
+            margin-bottom: 15px;
+        }
+
+        button {
+            background-color: #38b000;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: 'Kantumruy Pro';
+            font-weight: bold;
+            box-shadow: 0 4px 0 #2d6a4f;
+        }
+
+        button:active { transform: translateY(4px); box-shadow: none; }
+
+        /* តារាងរត់ */
+        #race-track {
+            margin-top: 30px;
+            width: 100%;
+            background-color: #2b9348;
+            border: 8px solid #1b4332;
+            border-radius: 10px;
+            position: relative;
+            display: none;
+            overflow: hidden;
+        }
+
+        .lane {
+            height: 70px;
+            border-bottom: 2px dashed rgba(255,255,255,0.4);
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .animal {
+            position: absolute;
+            left: 0;
+            font-size: 45px;
+            transition: left 0.2s linear;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .student-name {
+            font-size: 14px;
+            background: white;
+            color: black;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+            margin-bottom: -5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .finish-line {
+            position: absolute;
+            right: 60px;
+            top: 0;
+            bottom: 0;
+            width: 15px;
+            background: repeating-linear-gradient(0deg, #fff, #fff 10px, #000 10px, #000 20px);
+            border-left: 2px solid gold;
+        }
+
+        /* ផ្ទាំងលទ្ធផល */
+        #result-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .result-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .loser-name {
+            font-size: 35px;
+            color: #d90429;
+            font-weight: bold;
+            margin: 20px 0;
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🏁 សត្វប្រណាំងគ្នា 🏁</h1>
+        <div id="setup">
+            <p>បញ្ចូលឈ្មោះសិស្ស (ដកឃ្លាដើម្បីបំបែកឈ្មោះ)៖</p>
+            <textarea id="studentNames" placeholder="សុខ ហេង ម៉ារី តុលា..."></textarea>
+            <br>
+            <button onclick="startRace()">លែងឥឡូវនេះ!</button>
+        </div>
+
+        <div id="race-track">
+            <div class="finish-line"></div>
+        </div>
+    </div>
+
+    <!-- ផ្ទាំងលទ្ធផល -->
+    <div id="result-overlay">
+        <div class="result-card">
+            <h2>🏆 ចំណាត់ថ្នាក់ចុងក្រោយ 🏆</h2>
+            <div id="rankList" style="text-align: left; margin-bottom: 20px; max-height: 150px; overflow-y: auto;"></div>
+            <hr>
+            <h3 style="color: #555;">អ្នកដែលត្រូវឈរឆ្លើយសំណួរគឺ៖</h3>
+            <div class="loser-name" id="loserName"></div>
+            <button onclick="resetGame()" style="background-color: #6c757d;">លេងម្តងទៀត</button>
+        </div>
+    </div>
+
+    <!-- សម្លេង (Audio) -->
+    <!-- ភ្លេងពេលរត់ -->
+    <audio id="sndRace" src="https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3" loop></audio>
+    <!-- សម្លេងហ៊ោពេលចប់ -->
+    <audio id="sndCheer" src="https://www.soundjay.com/human/sounds/applause-01.mp3"></audio>
+    <!-- សម្លេងរកឃើញអ្នកចាញ់ -->
+    <audio id="sndFail" src="https://www.soundjay.com/misc/sounds/fail-trumpet-01.mp3"></audio>
+
+    <script>
+        const animalIcons = ['🐎', '🐇', '🐕', '🐈', '🐅', '🦌', '🐒', '🐖', '🐄', '🐢'];
+        let winners = [];
+        let raceInterval;
+
+        function startRace() {
+            const input = document.getElementById('studentNames').value.trim();
+            if (!input) { alert("សូមបញ្ចូលឈ្មោះសិស្សសិន!"); return; }
+
+            const names = input.split(/\s+/);
+            const track = document.getElementById('race-track');
+            const setup = document.getElementById('setup');
+            const sndRace = document.getElementById('sndRace');
+
+            // បង្ហាញទីលាន និងលេងភ្លេង
+            track.innerHTML = '<div class="finish-line"></div>';
+            track.style.display = 'block';
+            setup.style.display = 'none';
+            sndRace.currentTime = 0;
+            sndRace.play();
+
+            winners = [];
+            
+            names.forEach((name, index) => {
+                const lane = document.createElement('div');
+                lane.className = 'lane';
+                lane.innerHTML = `
+                    <div class="animal" id="animal-${index}" style="left: 0;">
+                        <span class="student-name">${name}</span>
+                        ${animalIcons[index % animalIcons.length]}
+                    </div>
+                `;
+                track.appendChild(lane);
+            });
+
+            runLogic(names.length);
+        }
+
+        function runLogic(total) {
+            const trackWidth = document.getElementById('race-track').offsetWidth - 120;
+            const startTime = Date.now();
+            const duration = 20000; // ២០ វិនាទី
+
+            raceInterval = setInterval(() => {
+                let finishedThisFrame = 0;
+
+                for (let i = 0; i < total; i++) {
+                    const el = document.getElementById(`animal-${i}`);
+                    let currentLeft = parseFloat(el.style.left);
+
+                    if (currentLeft < trackWidth) {
+                        // ល្បឿនចៃដន្យខ្លាំង (ជួនលឿន ជួនយឺត)
+                        let speed = Math.random() * 10;
+                        
+                        // កែតម្រូវល្បឿនឱ្យត្រូវនឹងរយៈពេល ២០ វិនាទី
+                        const elapsed = Date.now() - startTime;
+                        if (elapsed > duration * 0.8) speed += Math.random() * 20; 
+
+                        let newLeft = currentLeft + speed;
+                        if (newLeft >= trackWidth) {
+                            newLeft = trackWidth;
+                            if (!winners.find(w => w.id === i)) {
+                                winners.push({ id: i, name: el.querySelector('.student-name').innerText });
+                            }
+                        }
+                        el.style.left = newLeft + 'px';
+                    }
+                }
+
+                if (winners.length === total) {
+                    clearInterval(raceInterval);
+                    endRace();
+                }
+            }, 100);
+        }
+
+        function endRace() {
+            document.getElementById('sndRace').pause();
+            document.getElementById('sndCheer').play();
+            
+            setTimeout(() => {
+                document.getElementById('sndFail').play();
+                showResults();
+            }, 1000);
+        }
+
+        function showResults() {
+            const overlay = document.getElementById('result-overlay');
+            const rankList = document.getElementById('rankList');
+            const loserName = document.getElementById('loserName');
+
+            rankList.innerHTML = winners.map((w, i) => 
+                `<b>${i + 1}.</b> ${w.name} ${i === 0 ? '🥇' : ''}`
+            ).join('<br>');
+
+            const loser = winners[winners.length - 1];
+            loserName.innerText = loser.name;
+
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() {
+            document.getElementById('result-overlay').style.display = 'none';
+            document.getElementById('race-track').style.display = 'none';
+            document.getElementById('setup').style.display = 'block';
+            document.getElementById('sndCheer').pause();
+            document.getElementById('sndFail').pause();
+        }
+    </script>
+</body>
+</html>
