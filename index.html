@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ដំណើរផ្សងព្រេងគណិតវិទ្យាថ្នាក់ទី៥</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;700&family=Moul&display=swap');
+
+        body {
+            font-family: 'Kantumruy Pro', sans-serif;
+            background: #FFDEE9;
+            background-image: linear-gradient(0deg, #FFDEE9 0%, #B5FFFC 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        #game-box {
+            background: white;
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 15px 0 #3498db;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            border: 5px solid #3498db;
+            position: relative;
+        }
+
+        h1 { font-family: 'Moul', serif; color: #e67e22; font-size: 24px; text-shadow: 2px 2px #f1c40f; }
+
+        .progress-container {
+            background: #eee;
+            border-radius: 20px;
+            height: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+            border: 2px solid #333;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #2ecc71;
+            transition: width 0.3s;
+        }
+
+        .question-box {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 15px;
+            border: 2px dashed #3498db;
+            color: #2c3e50;
+        }
+
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .option-btn {
+            background: #fff;
+            border: 3px solid #3498db;
+            padding: 15px;
+            font-size: 1.2rem;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .option-btn:hover { background: #3498db; color: white; transform: translateY(-3px); }
+        .option-btn:active { transform: translateY(0); }
+
+        .correct { background: #2ecc71 !important; color: white; border-color: #27ae60; }
+        .wrong { background: #e74c3c !important; color: white; border-color: #c0392b; }
+
+        #score-display { font-size: 1.2rem; font-weight: bold; color: #2980b9; margin-bottom: 10px; }
+
+        .start-btn, .restart-btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #d35400;
+            font-family: 'Moul', serif;
+        }
+
+        .start-btn:hover { background: #d35400; }
+
+        .emoji-icon { font-size: 50px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <!-- Screen 1: Start -->
+    <div id="start-screen">
+        <div class="emoji-icon">🚀</div>
+        <h1>អាណាចក្រគណិតវិទ្យា</h1>
+        <p>តើក្មួយៗត្រៀមខ្លួនដោះស្រាយល្បែងទាំង ១៥ ដែរឬទេ?</p>
+        <button class="start-btn" onclick="startGame()">ចាប់ផ្ដើម!</button>
+    </div>
+
+    <!-- Screen 2: Game -->
+    <div id="quiz-screen" style="display: none;">
+        <div id="score-display">សំណួរទី: <span id="q-count">1</span>/15</div>
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div class="question-box" id="question-text">សំណួរនឹងបង្ហាញនៅទីនេះ</div>
+        <div class="options-container" id="options-grid">
+            <!-- Buttons will be here -->
+        </div>
+    </div>
+
+    <!-- Screen 3: Result -->
+    <div id="result-screen" style="display: none;">
+        <div class="emoji-icon" id="result-emoji">🏆</div>
+        <h1>លទ្ធផលការប្រកួត</h1>
+        <div style="font-size: 2rem; margin: 20px 0;">ពិន្ទុរបស់អ្នកគឺ៖ <span id="final-score" style="color: #e67e22; font-weight: bold;">0</span> / 10</div>
+        <p id="feedback-text"></p>
+        <button class="restart-btn" onclick="location.reload()">លេងម្ដងទៀត</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        // --- ១០ លំហាត់គណនា ---
+        { q: "៤៥ x ៥ = ?", a: ["២១៥", "២២៥", "២៣៥", "២៤៥"], c: 1 },
+        { q: "១២០០ - ៤៥០ = ?", a: ["៧៥០", "៨៥០", "៦៥០", "៧០០"], c: 0 },
+        { q: "១៤៤ ÷ ១២ = ?", a: ["១០", "១១", "១២", "១៤"], c: 2 },
+        { q: "០.៥ + ០.៧៥ = ?", a: ["១.២", "១.២៥", "១.៣", "១.៥"], c: 1 },
+        { q: "២៥ x ៤ = ?", a: ["៨០", "៩០", "១០០", "១១០"], c: 2 },
+        { q: "៨១ ÷ ៩ = ?", a: ["៧", "៨", "៩", "៦"], c: 2 },
+        { q: "៣.៥ x ២ = ?", a: ["៦.០", "៧.០", "៨.០", "៧.៥"], c: 1 },
+        { q: "១៥០ + ៨០ - ៣០ = ?", a: ["១៨០", "២០០", "២១០", "២៣០"], c: 1 },
+        { q: "១/៤ + ២/៤ = ?", a: ["១/២", "៣/៤", "៣/៨", "៤/៤"], c: 1 },
+        { q: "៦០ x ៣០ = ?", a: ["១៨០", "១៨០០", "៦៣០", "៩០០"], c: 1 },
+
+        // --- ៥ ចំណោទ ---
+        { q: "សុខមានលុយ ៥០០០រៀល ម៉ាក់ឱ្យថែម ២៥០០រៀលទៀត។ តើសុខមានលុយសរុបប៉ុន្មាន?", a: ["៧០០០រៀល", "៧៥០០រៀល", "៨០០០រៀល", "៦៥០០រៀល"], c: 1 },
+        { q: "ប៊ិចមួយដើមថ្លៃ ៨០០រៀល។ បើទិញ ៥ដើម តើត្រូវអស់លុយប៉ុន្មាន?", a: ["៤០០០រៀល", "៣៥០០រៀល", "៤៥០០រៀល", "៥០០០រៀល"], c: 0 },
+        { q: "ម៉ែចែកនំ ១០០ដុំ ឱ្យកូន ៤នាក់ស្មើៗគ្នា។ តើកូនម្នាក់ៗបាននំប៉ុន្មានដុំ?", a: ["២០ដុំ", "២៥ដុំ", "៣០ដុំ", "១៥ដុំ"], c: 1 },
+        { q: "សៀវភៅមួយក្បាលថ្លៃ $១.៥០ និងប៊ិចមួយដើមថ្លៃ $០.៥០។ តើរបស់ទាំងពីរថ្លៃសរុបប៉ុន្មាន?", a: ["$១.៨០", "$២.០០", "$២.៥០", "$១.៩០"], c: 1 },
+        { q: "ដើមឈើមួយខ្ពស់ ២.៥ម៉ែត្រ។ មួយឆ្នាំក្រោយវាលូតបាន ០.៧ម៉ែត្រទៀត។ តើវាខ្ពស់សរុបប៉ុន្មាន?", a: ["៣.០ម៉ែត្រ", "៣.២ម៉ែត្រ", "៣.៥ម៉ែត្រ", "២.៩ម៉ែត្រ"], c: 1 }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+
+    function startGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const qData = questions[currentQuestion];
+        document.getElementById('q-count').innerText = currentQuestion + 1;
+        document.getElementById('question-text').innerText = qData.q;
+        document.getElementById('progress-bar').style.width = ((currentQuestion) / questions.length * 100) + "%";
+        
+        const optionsGrid = document.getElementById('options-grid');
+        optionsGrid.innerHTML = '';
+        
+        qData.a.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(index, btn);
+            optionsGrid.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(index, btn) {
+        const correctIdx = questions[currentQuestion].c;
+        const allBtns = document.querySelectorAll('.option-btn');
+        
+        allBtns.forEach(b => b.disabled = true);
+
+        if (index === correctIdx) {
+            score++;
+            btn.classList.add('correct');
+        } else {
+            btn.classList.add('wrong');
+            allBtns[correctIdx].classList.add('correct');
+        }
+
+        setTimeout(() => {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }, 1000);
+    }
+
+    function showResult() {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        
+        // គណនាពិន្ទុឱ្យមកត្រឹម ១០ (ពិន្ទុ = (ចំនួនត្រូវ/១៥) * ១០)
+        let finalScore = (score / questions.length) * 10;
+        finalScore = finalScore.toFixed(1); // បង្ហាញក្បៀសតែ ១ខ្ទង់
+
+        document.getElementById('final-score').innerText = finalScore;
+
+        let emoji = "😟";
+        let feedback = "ព្យាយាមម្ដងទៀតណា៎ ក្មួយអាចធ្វើបាន!";
+        
+        if (finalScore >= 9) {
+            emoji = "🏆";
+            feedback = "អស្ចារ្យមែនទែន! អ្នកគឺជាទេពកោសល្យគណិតវិទ្យា!";
+        } else if (finalScore >= 7) {
+            emoji = "🌟";
+            feedback = "ល្អណាស់! ក្មួយពិតជាពូកែ!";
+        } else if (finalScore >= 5) {
+            emoji = "😊";
+            feedback = "ល្អបង្គួរ! បន្ថែមការប្រុងប្រយ័ត្នបន្តិចទៀតណា៎!";
+        }
+
+        document.getElementById('result-emoji').innerText = emoji;
+        document.getElementById('feedback-text').innerText = feedback;
+    }
+</script>
+
+</body>
+</html>
